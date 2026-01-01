@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>MCQ Test</title>
+
+  <!-- IMPORTANT FOR PUBLIC USERS -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    #test, #resultPage { display: none; }
+    label { cursor: pointer; display:block; margin:6px 0; }
+    button { padding:8px 14px; }
+  </style>
+</head>
+<body>
+
+<div id="instructions">
+  <h2>MCQ Test Instructions</h2>
+  <button onclick="startTest()">Start Test</button>
+</div>
+
+<div id="test">
+  <h3 id="qno"></h3>
+  <p id="question"></p>
+  <div id="options"></div>
+  <br>
+  <button onclick="saveAndNext()">Next</button>
+</div>
+
+<div id="resultPage">
+  <h2 id="score"></h2>
+  <div id="review"></div>
+</div>
+
+<script>
+/* ===== GOOGLE HANDSHAKE (VERY IMPORTANT) ===== */
+google.script.run.withSuccessHandler(function () {
+  console.log("Server connected");
+}).ping();
+
+/***********************
+ * QUESTIONS DATA
+ ***********************/
+const questions = [
+  {
+    question: "संविधान सभा की औपचारिक मांग सर्वप्रथम किसने की थी?",
+    options: ["जवाहरलाल नेहरू","महात्मा गांधी","एम. एन. रॉय","सुभाष चंद्र बोस"],
+    correct: 2,
+    explanation: "1934 ई. में एम. एन. रॉय ने औपचारिक रूप से संविधान सभा की मांग की थी।"
+  },
+  {
+    question: "संविधान सभा की पहली अनौपचारिक मांग किसने की थी?",
+    options: ["लाला लाजपत राय","बाल गंगाधर तिलक","गोपाल कृष्ण गोखले","सुरेन्द्रनाथ बनर्जी"],
+    correct: 1,
+    explanation: "संविधान सभा की पहली अनौपचारिक मांग बाल गंगाधर तिलक ने की थी।"
+  }
+  // baaki questions SAME rahenge (no change)
+];
+
+let current = 0;
+let answers = [];
+
+function startTest() {
+  document.getElementById("instructions").style.display = "none";
+  document.getElementById("test").style.display = "block";
+  loadQuestion();
+}
+
+function loadQuestion() {
+  document.getElementById("qno").innerText =
+    `Question ${current + 1} of ${questions.length}`;
+
+  document.getElementById("question").innerText =
+    questions[current].question;
+
+  let html = "";
+  questions[current].options.forEach((opt, i) => {
+    html += `
+      <label>
+        <input type="radio" name="opt" value="${i}">
+        ${opt}
+      </label>`;
+  });
+
+  document.getElementById("options").innerHTML = html;
+}
+
+function saveAndNext() {
+  let selected = document.querySelector('input[name="opt"]:checked');
+  answers[current] = selected ? parseInt(selected.value) : null;
+  current++;
+
+  current < questions.length ? loadQuestion() : finalSubmit();
+}
+
+function finalSubmit() {
+  document.getElementById("test").style.display = "none";
+  document.getElementById("resultPage").style.display = "block";
+
+  let score = 0;
+  let reviewHTML = "";
+
+  questions.forEach((q, i) => {
+    if (answers[i] === q.correct) {
+      score++;
+    } else {
+      reviewHTML += `
+        <div style="border:1px solid red; padding:8px; margin:8px 0;">
+          <b>Q:</b> ${q.question}<br>
+          <b>Your Answer:</b> ${
+            answers[i] !== null ? q.options[answers[i]] : "Not Attempted"
+          }<br>
+          <b>Correct Answer:</b> ${q.options[q.correct]}<br>
+          <b>Explanation:</b> ${q.explanation}
+        </div>
+      `;
+    }
+  });
+
+  document.getElementById("score").innerText =
+    `Score: ${score} / ${questions.length}`;
+
+  document.getElementById("review").innerHTML = reviewHTML;
+}
+</script>
+
+</body>
+</html>
