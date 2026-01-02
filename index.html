@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
 <title>MCQ Test</title>
@@ -12,10 +12,9 @@
 </script>
 
 <style>
-body{font-family:Arial;padding:20px}
-#test,#resultPage{display:none}
-button{padding:8px 14px;margin-top:10px}
-.review{border:1px solid red;padding:8px;margin:10px 0}
+body { font-family: Arial; padding:20px; }
+button { padding:8px 15px; margin:5px; cursor:pointer; }
+#test, #resultPage { display:none; }
 </style>
 </head>
 
@@ -24,8 +23,8 @@ button{padding:8px 14px;margin-top:10px}
 <!-- USER DETAILS -->
 <div id="userForm">
   <h2>Enter Details</h2>
-  <input id="name" placeholder="Your Name" required><br><br>
-  <input id="mobile" placeholder="Mobile Number" required><br><br>
+  <input type="text" id="name" placeholder="Enter Name" required><br><br>
+  <input type="text" id="mobile" placeholder="Enter Mobile Number" required><br><br>
   <button onclick="startTest()">Start Test</button>
 </div>
 
@@ -34,20 +33,24 @@ button{padding:8px 14px;margin-top:10px}
   <h3 id="qno"></h3>
   <p id="question"></p>
   <div id="options"></div>
-  <button onclick="submitNow()">Final Submit</button>
+
+  <button onclick="nextQuestion()">Next</button>
+  <button onclick="skipQuestion()">Skip</button>
+  <button onclick="finalSubmit()">Final Submit</button>
 </div>
 
 <!-- RESULT -->
 <div id="resultPage">
   <h2 id="score"></h2>
-  <p id="summary"></p>
+  <div id="summary"></div>
+  <hr>
   <div id="review"></div>
 </div>
 
 <script>
-/******** QUESTIONS (SAMPLE – tum apna poora array yahan rehne do) ********/
+/* QUESTIONS */
 const questions = [
-  {
+{
     question: "निम्नलिखित में से किस अधिनियम ने कलकत्ता में सर्वोच्च न्यायालय की स्थापना का प्रावधान किया था?",
     options: [
       "रेग्युलेटिंग एक्ट, 1773",
@@ -2082,66 +2085,95 @@ const questions = [
   }
 ];
 
-let current=0, answers=[], userName="", userMobile="";
+let current = 0;
+let answers = new Array(questions.length).fill(null);
 
+/* START */
 function startTest(){
-  userName=document.getElementById("name").value.trim();
-  userMobile=document.getElementById("mobile").value.trim();
-  if(!userName||!userMobile){alert("Details required");return;}
-  document.getElementById("userForm").style.display="none";
-  document.getElementById("test").style.display="block";
+  if(!name.value || !mobile.value){
+    alert("Name & Mobile required");
+    return;
+  }
+  userForm.style.display="none";
+  test.style.display="block";
   loadQuestion();
 }
 
 function loadQuestion(){
-  document.getElementById("qno").innerText=`Question ${current+1}/${questions.length}`;
-  document.getElementById("question").innerText=questions[current].question;
+  qno.innerText = `Question ${current+1}/${questions.length}`;
+  question.innerText = questions[current].question;
+
   let html="";
   questions[current].options.forEach((o,i)=>{
-    html+=`<label><input type="radio" name="opt" value="${i}"> ${o}</label><br>`;
+    html+=`<label><input type="radio" name="opt" value="${i}" ${answers[current]==i?"checked":""}> ${o}</label><br>`;
   });
-  document.getElementById("options").innerHTML=html;
+  options.innerHTML=html;
 }
 
-function submitNow(){
-  let sel=document.querySelector('input[name="opt"]:checked');
-  answers[current]=sel?parseInt(sel.value):null;
-  finalSubmit();
+function nextQuestion(){
+  saveAnswer();
+  if(current < questions.length-1){
+    current++;
+    loadQuestion();
+  }
 }
 
+function skipQuestion(){
+  answers[current]=null;
+  if(current < questions.length-1){
+    current++;
+    loadQuestion();
+  }
+}
+
+function saveAnswer(){
+  let s=document.querySelector('input[name="opt"]:checked');
+  answers[current]= s ? parseInt(s.value) : null;
+}
+
+/* FINAL SUBMIT */
 function finalSubmit(){
-  document.getElementById("test").style.display="none";
-  document.getElementById("resultPage").style.display="block";
+  saveAnswer();
+  test.style.display="none";
+  resultPage.style.display="block";
 
-  let correct=0,wrong=0,skipped=0,reviewHTML="";
+  let correct=0, wrong=0, skipped=0;
+  let wrongHTML="";
 
   questions.forEach((q,i)=>{
-    if(answers[i]===q.correct) correct++;
+    if(answers[i]==null){ skipped++; }
+    else if(answers[i]==q.correct){ correct++; }
     else{
-      if(answers[i]===null) skipped++; else wrong++;
-      reviewHTML+=`
-      <div class="review">
+      wrong++;
+      wrongHTML+=`
+      <div style="border:1px solid red;padding:10px;margin:10px;">
       <b>Q:</b> ${q.question}<br>
-      <b>Your:</b> ${answers[i]!==null?q.options[answers[i]]:"Skipped"}<br>
+      <b>Your:</b> ${q.options[answers[i]]}<br>
       <b>Correct:</b> ${q.options[q.correct]}<br>
       <b>Explanation:</b> ${q.explanation}
       </div>`;
     }
   });
 
-  document.getElementById("score").innerText=`Score: ${correct}/${questions.length}`;
-  document.getElementById("summary").innerText=
-    `Correct: ${correct} | Wrong: ${wrong} | Skipped: ${skipped}`;
-  document.getElementById("review").innerHTML=reviewHTML;
+  score.innerText=`Score: ${correct}/${questions.length}`;
+  summary.innerHTML=`
+  <b>Total:</b> ${questions.length}<br>
+  <b>Correct:</b> ${correct}<br>
+  <b>Wrong:</b> ${wrong}<br>
+  <b>Unattempted:</b> ${skipped}
+  `;
+  review.innerHTML = wrongHTML || "🎉 All Correct";
 
+  /* EMAIL SEND */
   emailjs.send("service_fyssovx","template_gc1lc41",{
-    name:userName,
-    mobile:userMobile,
-    total:questions.length,
-    correct:correct,
-    wrong:wrong,
-    skipped:skipped,
-    score:correct+"/"+questions.length
+    user_name: name.value,
+    user_mobile: mobile.value,
+    score: correct+"/"+questions.length,
+    total: questions.length,
+    correct: correct,
+    wrong: wrong,
+    unattempted: skipped,
+    result_details: wrongHTML || "No wrong answers"
   });
 }
 </script>
