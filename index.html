@@ -1,37 +1,52 @@
 <!DOCTYPE html>
-<html>
+<html lang="hi">
 <head>
-  <title>MCQ Test</title>
-  <script src="https://cdn.emailjs.com/dist/email.min.js"></script>
-  <style>
-    body { font-family: Arial; padding:20px }
-    .correct { border-left:5px solid green; padding:8px }
-    .wrong { border-left:5px solid red; padding:8px }
-    .skipped { border-left:5px solid orange; padding:8px }
-  </style>
+<meta charset="UTF-8">
+<title>MCQ Test</title>
+
+<script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+
+<script>
+emailjs.init("5yWeyqCS6d88LlA3e"); // PUBLIC KEY
+</script>
+
+<style>
+body { font-family: Arial; background:#f2f2f2; padding:20px }
+.box { background:#fff; padding:20px; max-width:800px; margin:auto }
+button { padding:8px 15px; margin:5px }
+.correct { border-left:5px solid green; padding:10px }
+.wrong { border-left:5px solid red; padding:10px }
+.skipped { border-left:5px solid orange; padding:10px }
+#timer { font-weight:bold; color:red }
+</style>
 </head>
 
 <body>
 
+<div class="box" id="startBox">
 <h2>Enter Details</h2>
 <input id="user_name" placeholder="Name"><br><br>
 <input id="user_mobile" placeholder="Mobile"><br><br>
-<input id="user_email" placeholder="Email"><br><br>
 <button onclick="startTest()">Start Test</button>
+</div>
 
-<hr>
+<div class="box" id="quizBox" style="display:none">
+<h3 id="qno"></h3>
+<p id="question"></p>
+<div id="options"></div>
 
-<div id="quiz" style="display:none"></div>
-<div id="timer"></div>
+<p>Time Left: <span id="timer">60</span> sec</p>
+
 <button onclick="nextQuestion()">Next</button>
 <button onclick="skipQuestion()">Skip</button>
 <button onclick="finalSubmit()">Final Submit</button>
+</div>
+
+<div class="box" id="resultBox" style="display:none"></div>
 
 <script>
-emailjs.init("5yWeyqCS6d88LlA3e");
-
 const questions = [
-   {
+  {
     question: "निम्नलिखित में से किस अधिनियम ने कलकत्ता में सर्वोच्च न्यायालय की स्थापना का प्रावधान किया था?",
     options: [
       "रेग्युलेटिंग एक्ट, 1773",
@@ -2066,123 +2081,127 @@ const questions = [
   }
 ];
 
-let i=0, correct=0, wrong=0, skip=0;
-let answers=[];
-let reviewHTML="";
-let timePerQ=[];
-let startTime;
-let timer;
+let index=0, answers=[], correct=0, wrong=0, skip=0;
+let totalTime=0, timerInt;
 
 function startTest(){
-  if(!user_name.value || !user_mobile.value || !user_email.value){
-    alert("Name, Mobile, Email required");
-    return;
-  }
-  quiz.style.display="block";
-  showQuestion();
+ const n=document.getElementById("user_name").value.trim();
+ const m=document.getElementById("user_mobile").value.trim();
+ if(!n || !m){ alert("Name & Mobile required"); return; }
+
+ document.getElementById("startBox").style.display="none";
+ document.getElementById("quizBox").style.display="block";
+ loadQuestion();
 }
 
-function showQuestion(){
-  startTime=Date.now();
-  timer=setTimeout(autoNext,60000);
+function loadQuestion(){
+ clearInterval(timerInt);
+ let t=60;
+ document.getElementById("timer").innerText=t;
+ timerInt=setInterval(()=>{
+  t--; totalTime++;
+  document.getElementById("timer").innerText=t;
+  if(t<=0){ skipQuestion(); }
+ },1000);
 
-  let q=questions[i];
-  quiz.innerHTML=`
-    <h3>Q${i+1}: ${q.question}</h3>
-    ${q.options.map((o,idx)=>`
-      <label>
-        <input type="radio" name="opt" value="${idx}">
-        ${o}
-      </label><br>`).join("")}
-  `;
+ let q=questions[index];
+ document.getElementById("qno").innerText=`Question ${index+1}/${questions.length}`;
+ document.getElementById("question").innerText=q.question;
+ let html="";
+ q.options.forEach((o,i)=>{
+  html+=`<label><input type="radio" name="opt" value="${i}"> ${o}</label><br>`;
+ });
+ document.getElementById("options").innerHTML=html;
 }
 
-function recordAnswer(){
-  clearTimeout(timer);
-  let spent=(Date.now()-startTime)/1000;
-  timePerQ.push(spent);
-
-  let sel=document.querySelector("input[name=opt]:checked");
-  answers[i]= sel ? Number(sel.value) : null;
+function getAnswer(){
+ let a=document.querySelector("input[name='opt']:checked");
+ return a ? Number(a.value) : null;
 }
 
 function nextQuestion(){
-  recordAnswer();
-  i++;
-  i<questions.length ? showQuestion() : finalSubmit();
+ answers[index]=getAnswer();
+ index++;
+ if(index<questions.length) loadQuestion();
+ else finalSubmit();
 }
 
 function skipQuestion(){
-  clearTimeout(timer);
-  answers[i]=null;
-  timePerQ.push(60);
-  i++;
-  i<questions.length ? showQuestion() : finalSubmit();
+ answers[index]=null;
+ index++;
+ if(index<questions.length) loadQuestion();
+ else finalSubmit();
 }
 
-function autoNext(){
-  answers[i]=null;
-  timePerQ.push(60);
-  i++;
-  i<questions.length ? showQuestion() : finalSubmit();
+function formatTime(sec){
+ let m=Math.floor(sec/60);
+ let s=sec%60;
+ return m>0 ? `${m} min ${s} sec` : `${s} sec`;
 }
 
 function finalSubmit(){
-  recordAnswer();
+ clearInterval(timerInt);
+ let reviewHTML="";
 
-  questions.forEach((q,idx)=>{
-    if(answers[idx]===null){
-      skip++;
-      reviewHTML+=`
-      <div class="skipped">
-      <b>Q:</b> ${q.question}<br>
-      <b>Status:</b> Unattempted<br>
-      <b>Correct:</b> ${q.options[q.correct]}<br>
-      <b>Explanation:</b> ${q.explanation}
-      </div>`;
-    }
-    else if(answers[idx]===q.correct){
-      correct++;
-      reviewHTML+=`
-      <div class="correct">
-      <b>Q:</b> ${q.question}<br>
-      <b>Status:</b> Correct<br>
-      <b>Explanation:</b> ${q.explanation}
-      </div>`;
-    }
-    else{
-      wrong++;
-      reviewHTML+=`
-      <div class="wrong">
-      <b>Q:</b> ${q.question}<br>
-      <b>Your:</b> ${q.options[answers[idx]]}<br>
-      <b>Correct:</b> ${q.options[q.correct]}<br>
-      <b>Explanation:</b> ${q.explanation}
-      </div>`;
-    }
-  });
+ questions.forEach((q,i)=>{
+  if(answers[i]===null){
+   skip++;
+   reviewHTML+=`
+   <div class="skipped">
+   <b>Q:</b> ${q.question}<br>
+   <b>Status:</b> Unattempted<br>
+   <b>Correct:</b> ${q.options[q.correct]}<br>
+   <b>Explanation:</b> ${q.explanation}
+   </div>`;
+  }
+  else if(answers[i]===q.correct){
+   correct++;
+   reviewHTML+=`
+   <div class="correct">
+   <b>Q:</b> ${q.question}<br>
+   <b>Status:</b> Correct<br>
+   <b>Answer:</b> ${q.options[q.correct]}<br>
+   <b>Explanation:</b> ${q.explanation}
+   </div>`;
+  }
+  else{
+   wrong++;
+   reviewHTML+=`
+   <div class="wrong">
+   <b>Q:</b> ${q.question}<br>
+   <b>Your:</b> ${q.options[answers[i]]}<br>
+   <b>Correct:</b> ${q.options[q.correct]}<br>
+   <b>Explanation:</b> ${q.explanation}
+   </div>`;
+  }
+ });
 
-  let totalTime=timePerQ.reduce((a,b)=>a+b,0);
-  let avg=(totalTime/questions.length).toFixed(1);
+ document.getElementById("quizBox").style.display="none";
+ document.getElementById("resultBox").style.display="block";
 
-  emailjs.send("service_fyssovx","template_qfj8k1q",{
-    to_email: user_email.value,
-    user_name: user_name.value,
-    user_mobile: user_mobile.value,
-    score: `${correct}/${questions.length}`,
-    total: questions.length,
-    correct: correct,
-    wrong: wrong,
-    unattempted: skip,
-    total_time: `${Math.floor(totalTime/60)} min ${Math.floor(totalTime%60)} sec`,
-    avg_time: `${avg} sec`,
-    result_details: reviewHTML
-  });
+ let avg=(totalTime/questions.length).toFixed(1);
 
-  document.body.innerHTML="<h2>Test Submitted. Result sent to Email.</h2>";
+ document.getElementById("resultBox").innerHTML=`
+ <h2>Score: ${correct}/${questions.length}</h2>
+ <p>Correct: ${correct}, Wrong: ${wrong}, Skipped: ${skip}</p>
+ <p>Total Time: ${formatTime(totalTime)}, Avg/Q: ${avg} sec</p>
+ <hr>${reviewHTML}`;
+
+ emailjs.send("service_fyssovx","template_qfj8k1q",{
+  to_email:"makash839@gmail.com",
+  user_name:document.getElementById("user_name").value,
+  user_mobile:document.getElementById("user_mobile").value,
+  score:`${correct}/${questions.length}`,
+  total:questions.length,
+  correct:correct,
+  wrong:wrong,
+  unattempted:skip,
+  total_time:formatTime(totalTime),
+  avg_time:`${avg} sec`,
+  result_details:reviewHTML
+ });
 }
 </script>
 
 </body>
 </html>
-
