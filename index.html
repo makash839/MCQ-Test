@@ -1,56 +1,85 @@
 <!DOCTYPE html>
-<html>
+<html lang="hi">
 <head>
 <meta charset="UTF-8">
 <title>MCQ Test</title>
 
+<!-- EmailJS -->
 <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 <script>
 (function(){
-  emailjs.init("5yWeyqCS6d88LlA3e");
+  emailjs.init("5yWeyqCS6d88LlA3e"); // ✅ YOUR PUBLIC KEY
 })();
 </script>
 
 <style>
-body { font-family: Arial; padding:20px; }
-button { padding:8px 15px; margin:5px; cursor:pointer; }
-#test, #resultPage { display:none; }
+body{
+  font-family: Arial, sans-serif;
+  background:#f2f2f2;
+  padding:20px;
+}
+.box{
+  background:#fff;
+  padding:20px;
+  max-width:800px;
+  margin:auto;
+  border-radius:8px;
+}
+button{
+  padding:8px 15px;
+  margin:5px;
+  cursor:pointer;
+}
+.option{
+  display:block;
+  margin:6px 0;
+}
+.review{
+  border:1px solid #ccc;
+  padding:10px;
+  margin:10px 0;
+}
+.wrong{border-color:red;}
+.skip{border-color:orange;}
 </style>
 </head>
 
 <body>
 
-<!-- USER DETAILS -->
-<div id="userForm">
+<div class="box">
+
+<!-- ================= USER DETAILS ================= -->
+<div id="detailsBox">
   <h2>Enter Details</h2>
-  <input type="text" id="name" placeholder="Enter Name" required><br><br>
-  <input type="text" id="mobile" placeholder="Enter Mobile Number" required><br><br>
+  <input type="text" id="user_name" placeholder="Enter Name"><br><br>
+  <input type="text" id="user_mobile" placeholder="Enter Mobile"><br><br>
   <button onclick="startTest()">Start Test</button>
 </div>
 
-<!-- TEST -->
-<div id="test">
+<!-- ================= TEST ================= -->
+<div id="testBox" style="display:none;">
   <h3 id="qno"></h3>
   <p id="question"></p>
   <div id="options"></div>
-
-  <button onclick="nextQuestion()">Next</button>
   <button onclick="skipQuestion()">Skip</button>
+  <button onclick="nextQuestion()">Next</button>
   <button onclick="finalSubmit()">Final Submit</button>
 </div>
 
-<!-- RESULT -->
-<div id="resultPage">
-  <h2 id="score"></h2>
-  <div id="summary"></div>
-  <hr>
-  <div id="review"></div>
+<!-- ================= RESULT ================= -->
+<div id="resultBox" style="display:none;">
+  <h2 id="scoreText"></h2>
+  <p id="summary"></p>
+  <h3>Question Review</h3>
+  <div id="reviewBox"></div>
+</div>
+
 </div>
 
 <script>
-/* QUESTIONS */
+// ================= QUESTIONS =================
 const questions = [
-{
+  {
     question: "निम्नलिखित में से किस अधिनियम ने कलकत्ता में सर्वोच्च न्यायालय की स्थापना का प्रावधान किया था?",
     options: [
       "रेग्युलेटिंग एक्ट, 1773",
@@ -2085,96 +2114,123 @@ const questions = [
   }
 ];
 
+// ================= VARIABLES =================
 let current = 0;
-let answers = new Array(questions.length).fill(null);
+let answers = [];
 
-/* START */
+// ================= START TEST =================
 function startTest(){
-  if(!name.value || !mobile.value){
+  const userName = document.getElementById("user_name");
+  const userMobile = document.getElementById("user_mobile");
+
+  if(!userName.value.trim() || !userMobile.value.trim()){
     alert("Name & Mobile required");
     return;
   }
-  userForm.style.display="none";
-  test.style.display="block";
+
+  document.getElementById("detailsBox").style.display="none";
+  document.getElementById("testBox").style.display="block";
   loadQuestion();
 }
 
+// ================= LOAD QUESTION =================
 function loadQuestion(){
-  qno.innerText = `Question ${current+1}/${questions.length}`;
-  question.innerText = questions[current].question;
+  document.getElementById("qno").innerText =
+    `Question ${current+1}/${questions.length}`;
+  document.getElementById("question").innerText =
+    questions[current].question;
 
   let html="";
-  questions[current].options.forEach((o,i)=>{
-    html+=`<label><input type="radio" name="opt" value="${i}" ${answers[current]==i?"checked":""}> ${o}</label><br>`;
+  questions[current].options.forEach((opt,i)=>{
+    html+=`
+      <label class="option">
+        <input type="radio" name="opt" value="${i}"> ${opt}
+      </label>`;
   });
-  options.innerHTML=html;
+  document.getElementById("options").innerHTML=html;
 }
 
+// ================= NEXT =================
 function nextQuestion(){
-  saveAnswer();
-  if(current < questions.length-1){
+  const sel=document.querySelector('input[name="opt"]:checked');
+  answers[current]=sel?parseInt(sel.value):null;
+  if(current<questions.length-1){
     current++;
     loadQuestion();
+  }else{
+    finalSubmit();
   }
 }
 
+// ================= SKIP =================
 function skipQuestion(){
   answers[current]=null;
-  if(current < questions.length-1){
+  if(current<questions.length-1){
     current++;
     loadQuestion();
+  }else{
+    finalSubmit();
   }
 }
 
-function saveAnswer(){
-  let s=document.querySelector('input[name="opt"]:checked');
-  answers[current]= s ? parseInt(s.value) : null;
-}
-
-/* FINAL SUBMIT */
+// ================= FINAL SUBMIT =================
 function finalSubmit(){
-  saveAnswer();
-  test.style.display="none";
-  resultPage.style.display="block";
+  document.getElementById("testBox").style.display="none";
+  document.getElementById("resultBox").style.display="block";
 
-  let correct=0, wrong=0, skipped=0;
-  let wrongHTML="";
+  let correct=0, wrong=0, skip=0;
+  let reviewHTML="";
 
   questions.forEach((q,i)=>{
-    if(answers[i]==null){ skipped++; }
-    else if(answers[i]==q.correct){ correct++; }
-    else{
+    if(answers[i]===q.correct){
+      correct++;
+    }else if(answers[i]===null){
+      skip++;
+      reviewHTML+=`
+      <div class="review skip">
+        <b>Q:</b> ${q.question}<br>
+        <b>Status:</b> Skipped<br>
+        <b>Correct:</b> ${q.options[q.correct]}<br>
+        <b>Explanation:</b> ${q.explanation}
+      </div>`;
+    }else{
       wrong++;
-      wrongHTML+=`
-      <div style="border:1px solid red;padding:10px;margin:10px;">
-      <b>Q:</b> ${q.question}<br>
-      <b>Your:</b> ${q.options[answers[i]]}<br>
-      <b>Correct:</b> ${q.options[q.correct]}<br>
-      <b>Explanation:</b> ${q.explanation}
+      reviewHTML+=`
+      <div class="review wrong">
+        <b>Q:</b> ${q.question}<br>
+        <b>Your:</b> ${q.options[answers[i]]}<br>
+        <b>Correct:</b> ${q.options[q.correct]}<br>
+        <b>Explanation:</b> ${q.explanation}
       </div>`;
     }
   });
 
-  score.innerText=`Score: ${correct}/${questions.length}`;
-  summary.innerHTML=`
-  <b>Total:</b> ${questions.length}<br>
-  <b>Correct:</b> ${correct}<br>
-  <b>Wrong:</b> ${wrong}<br>
-  <b>Unattempted:</b> ${skipped}
-  `;
-  review.innerHTML = wrongHTML || "🎉 All Correct";
+  const score = `${correct}/${questions.length}`;
 
-  /* EMAIL SEND */
-  emailjs.send("service_fyssovx","template_gc1lc41",{
-    user_name: name.value,
-    user_mobile: mobile.value,
-    score: correct+"/"+questions.length,
-    total: questions.length,
-    correct: correct,
-    wrong: wrong,
-    unattempted: skipped,
-    result_details: wrongHTML || "No wrong answers"
-  });
+  document.getElementById("scoreText").innerText="Score: "+score;
+  document.getElementById("summary").innerText=
+    `Correct: ${correct}, Wrong: ${wrong}, Skipped: ${skip}`;
+  document.getElementById("reviewBox").innerHTML=reviewHTML;
+
+  sendEmail(score,correct,wrong,skip,reviewHTML);
+}
+
+// ================= EMAIL =================
+function sendEmail(score,correct,wrong,skip,details){
+  emailjs.send(
+    "service_fyssovx",       // ✅ SERVICE ID
+    "template_gc1lc41",      // ✅ TEMPLATE ID
+    {
+      user_name:document.getElementById("user_name").value,
+      user_mobile:document.getElementById("user_mobile").value,
+      score:score,
+      total:questions.length,
+      correct:correct,
+      wrong:wrong,
+      unattempted:skip,
+      result_details:details
+    }
+  );
 }
 </script>
 
