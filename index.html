@@ -1,52 +1,52 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
 <meta charset="UTF-8">
 <title>MCQ Test</title>
 
 <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 <script>
-(function(){
-  emailjs.init("5yWeyqCS6d88LlA3e");
-})();
+  emailjs.init("5yWeyqCS6d88LlA3e"); // PUBLIC KEY
 </script>
 
 <style>
-body{font-family:Arial;background:#f2f2f2;padding:20px}
-.box{background:#fff;padding:20px;max-width:900px;margin:auto}
-button{padding:8px 15px;margin:5px}
-.correct{border-left:5px solid green;padding:8px}
-.wrong{border-left:5px solid red;padding:8px}
-.skipped{border-left:5px solid orange;padding:8px}
-#timer{color:red;font-weight:bold}
+body { font-family: Arial; background:#f2f2f2; padding:20px }
+.box { background:#fff; padding:20px; max-width:900px; margin:auto }
+button { padding:8px 15px; margin:5px }
+.correct { border-left:5px solid green; padding:10px }
+.wrong { border-left:5px solid red; padding:10px }
+.skipped { border-left:5px solid orange; padding:10px }
+#timer { font-weight:bold; color:red }
 </style>
 </head>
 
 <body>
 
 <div class="box" id="startBox">
-<h2>Enter Details</h2>
-<input id="user_name" placeholder="Name"><br><br>
-<input id="user_mobile" placeholder="Mobile"><br><br>
-<input id="user_email" placeholder="Email"><br><br>
-<button onclick="startTest()">Start Test</button>
+  <h2>Enter Details</h2>
+  <input id="user_name" placeholder="Name"><br><br>
+  <input id="user_mobile" placeholder="Mobile"><br><br>
+  <input id="user_email" placeholder="Email"><br><br>
+  <button onclick="startTest()">Start Test</button>
 </div>
 
 <div class="box" id="quizBox" style="display:none">
-<h3 id="qno"></h3>
-<p id="question"></p>
-<div id="options"></div>
-<p>Time Left: <span id="timer">60</span> sec</p>
-<button onclick="nextQuestion()">Next</button>
-<button onclick="skipQuestion()">Skip</button>
-<button onclick="finalSubmit()">Final Submit</button>
+  <h3 id="qno"></h3>
+  <p id="question"></p>
+  <div id="options"></div>
+  <p>Time Left: <span id="timer">60</span> sec</p>
+
+  <button onclick="nextQuestion()">Next</button>
+  <button onclick="skipQuestion()">Skip</button>
+  <button onclick="finalSubmit()">Final Submit</button>
 </div>
 
 <div class="box" id="resultBox" style="display:none"></div>
 
 <script>
-const questions=[
- {
+// ================= DATA =================
+const questions = [
+   {
     question: "निम्नलिखित में से किस अधिनियम ने कलकत्ता में सर्वोच्च न्यायालय की स्थापना का प्रावधान किया था?",
     options: [
       "रेग्युलेटिंग एक्ट, 1773",
@@ -2081,100 +2081,143 @@ const questions=[
   }
 ];
 
-let i=0,answers=[],correct=0,wrong=0,unattempted=0;
-let startTime,timeSpent=[],timerInt;
+// ================= LOGIC =================
+let i = 0;
+let answers = [];
+let correctCount = 0, wrongCount = 0, skipCount = 0;
+let reviewHTML = "";
+let timerInt;
+let timeLeft = 60;
+let startTime;
+let timePerQ = [];
 
 function startTest(){
- if(!user_name.value||!user_mobile.value||!user_email.value){
-  alert("All details required");return;
- }
- startBox.style.display="none";
- quizBox.style.display="block";
- showQuestion();
+  if(!user_name.value || !user_mobile.value || !user_email.value){
+    alert("Name, Mobile, Email required");
+    return;
+  }
+  startBox.style.display = "none";
+  quizBox.style.display = "block";
+  showQuestion();
 }
 
 function showQuestion(){
- document.getElementById("timer").innerText=60;
- startTime=Date.now();
- let t=60;
- timerInt=setInterval(()=>{
-  t--;
-  document.getElementById("timer").innerText=t;
-  if(t<=0){skipQuestion();}
- },1000);
+  clearInterval(timerInt);
+  timeLeft = 60;
+  timer.innerText = timeLeft;
+  startTime = Date.now();
 
- let q=questions[i];
- qno.innerText="Q"+(i+1);
- question.innerText=q.question;
- options.innerHTML=q.options.map((o,idx)=>`
-  <label><input type="radio" name="opt" value="${idx}"> ${o}</label><br>
- `).join("");
+  const q = questions[i];
+  qno.innerText = `Question ${i+1}/${questions.length}`;
+  question.innerText = q.question;
+
+  options.innerHTML = q.options.map((opt, idx) => `
+    <label>
+      <input type="radio" name="opt" value="${idx+1}">
+      ${opt}
+    </label><br>
+  `).join("");
+
+  timerInt = setInterval(()=>{
+    timeLeft--;
+    timer.innerText = timeLeft;
+    if(timeLeft === 0){
+      autoNext();
+    }
+  },1000);
 }
 
 function recordAnswer(){
- clearInterval(timerInt);
- let spent=(Date.now()-startTime)/1000;
- timeSpent.push(spent);
- let sel=document.querySelector("input[name=opt]:checked");
- answers[i]=sel?Number(sel.value):null;
+  clearInterval(timerInt);
+  let spent = (Date.now() - startTime)/1000;
+  timePerQ.push(spent);
+
+  let sel = document.querySelector("input[name=opt]:checked");
+  answers[i] = sel ? Number(sel.value) : null;
 }
 
 function nextQuestion(){
- recordAnswer();
- i++;
- if(i<questions.length)showQuestion();
- else finalSubmit();
+  recordAnswer();
+  i++;
+  i < questions.length ? showQuestion() : finalSubmit();
 }
 
 function skipQuestion(){
- clearInterval(timerInt);
- answers[i]=null;
- timeSpent.push(60);
- i++;
- if(i<questions.length)showQuestion();
- else finalSubmit();
+  clearInterval(timerInt);
+  answers[i] = null;
+  timePerQ.push(60);
+  i++;
+  i < questions.length ? showQuestion() : finalSubmit();
+}
+
+function autoNext(){
+  answers[i] = null;
+  timePerQ.push(60);
+  i++;
+  i < questions.length ? showQuestion() : finalSubmit();
 }
 
 function finalSubmit(){
- clearInterval(timerInt);
- recordAnswer();
+  quizBox.style.display = "none";
+  resultBox.style.display = "block";
 
- let reviewHTML="";
- questions.forEach((q,idx)=>{
-  if(answers[idx]===null){
-   unattempted++;
-   reviewHTML+=`<div class="skipped"><b>Q:</b>${q.question}<br>Unattempted<br><b>Correct:</b>${q.options[q.correct]}<br>${q.explanation}</div>`;
-  }
-  else if(answers[idx]===q.correct){
-   correct++;
-   reviewHTML+=`<div class="correct"><b>Q:</b>${q.question}<br>Correct<br>${q.explanation}</div>`;
-  }
-  else{
-   wrong++;
-   reviewHTML+=`<div class="wrong"><b>Q:</b>${q.question}<br>Your:${q.options[answers[idx]]}<br>Correct:${q.options[q.correct]}<br>${q.explanation}</div>`;
-  }
- });
+  questions.forEach((q, idx)=>{
+    if(answers[idx] === null){
+      skipCount++;
+      reviewHTML += `
+      <div class="skipped">
+        <b>Q:</b> ${q.question}<br>
+        <b>Status:</b> Unattempted<br>
+        <b>Correct:</b> ${q.options[q.correct-1]}<br>
+        <b>Explanation:</b> ${q.explanation}
+      </div>`;
+    }
+    else if(answers[idx] === q.correct){
+      correctCount++;
+      reviewHTML += `
+      <div class="correct">
+        <b>Q:</b> ${q.question}<br>
+        <b>Status:</b> Correct<br>
+        <b>Answer:</b> ${q.options[q.correct-1]}<br>
+        <b>Explanation:</b> ${q.explanation}
+      </div>`;
+    }
+    else{
+      wrongCount++;
+      reviewHTML += `
+      <div class="wrong">
+        <b>Q:</b> ${q.question}<br>
+        <b>Your:</b> ${q.options[answers[idx]-1]}<br>
+        <b>Correct:</b> ${q.options[q.correct-1]}<br>
+        <b>Explanation:</b> ${q.explanation}
+      </div>`;
+    }
+  });
 
- let totalTime=timeSpent.reduce((a,b)=>a+b,0);
- let avg=(totalTime/questions.length).toFixed(1);
+  let totalTime = timePerQ.reduce((a,b)=>a+b,0);
+  let avg = (totalTime/questions.length).toFixed(1);
 
- emailjs.send("service_fyssovx","template_qfj8k1q",{
-  to_email:user_email.value,
-  user_name:user_name.value,
-  user_mobile:user_mobile.value,
-  score:`${correct}/${questions.length}`,
-  total:questions.length,
-  correct:correct,
-  wrong:wrong,
-  unattempted:unattempted,
-  total_time:`${Math.floor(totalTime/60)} min ${Math.floor(totalTime%60)} sec`,
-  avg_time:`${avg} sec`,
-  result_details:reviewHTML
- }).then(()=>{
-  document.body.innerHTML="<h2>✅ Test Submitted<br>📧 Result Sent Successfully</h2>";
- }).catch(err=>{
-  document.body.innerHTML="<h2>❌ Email Failed<br>"+err.text+"</h2>";
- });
+  resultBox.innerHTML = `
+    <h2>Score: ${correctCount}/${questions.length}</h2>
+    <p>Correct: ${correctCount}, Wrong: ${wrongCount}, Skipped: ${skipCount}</p>
+    <p>Total Time: ${Math.floor(totalTime/60)} min ${Math.floor(totalTime%60)} sec,
+       Avg/Q: ${avg} sec</p>
+    <hr>${reviewHTML}
+  `;
+
+  emailjs.send("service_fyssovx","template_qfj8k1q",{
+    to_email: user_email.value,
+    user_name: user_name.value,
+    user_mobile: user_mobile.value,
+    score: `${correctCount}/${questions.length}`,
+    total: questions.length,
+    correct: correctCount,
+    wrong: wrongCount,
+    unattempted: skipCount,
+    total_time: `${Math.floor(totalTime/60)} min ${Math.floor(totalTime%60)} sec`,
+    avg_time: `${avg} sec`,
+    result_details: reviewHTML
+  });
 }
 </script>
 
