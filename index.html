@@ -2206,20 +2206,28 @@ function finalSubmit(){
   `;
 
   emailjs.send("service_fyssovx","template_qfj8k1q",{
-    to_email: user_email.value,
-    user_name: user_name.value,
-    user_mobile: user_mobile.value,
-    score: `${correctCount}/${questions.length}`,
-    total: questions.length,
-    correct: correctCount,
-    wrong: wrongCount,
-    unattempted: skipCount,
-    total_time: `${Math.floor(totalTime/60)} min ${Math.floor(totalTime%60)} sec`,
-    avg_time: `${avg} sec`,
-    result_details: reviewHTML
-  });
-}
-</script>
-
-</body>
-</html>
+  to_email: user_email.value,
+  user_name: user_name.value,
+  user_mobile: user_mobile.value,
+  score: `${correctCount}/${questions.length}`,
+  total: questions.length,
+  correct: correctCount,
+  wrong: wrongCount,
+  unattempted: skipCount,
+  total_time: `${Math.floor(totalTime/60)} min ${Math.floor(totalTime%60)} sec`,
+  avg_time: `${avg} sec`,
+  result_details: reviewHTML
+})
+.then(()=>{
+  // ✅ Sirf message add karo, page mat hatao
+  const msg = document.createElement("p");
+  msg.innerHTML = "✅ Result Email Sent Successfully";
+  msg.style.color = "green";
+  resultBox.prepend(msg);
+})
+.catch(err=>{
+  const msg = document.createElement("p");
+  msg.innerHTML = "❌ Email Failed";
+  msg.style.color = "red";
+  resultBox.prepend(msg);
+});
